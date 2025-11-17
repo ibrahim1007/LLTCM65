@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Risiko Trading</title>
+    <!-- Memuat Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Memuat Library Eksternal (Chart.js, jsPDF, SheetJS) -->
+    <!-- Chart.js untuk grafik -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF & jsPDF-AutoTable untuk ekspor PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- SheetJS (xlsx) untuk ekspor/impor Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        /* Menggunakan font Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9; /* Latar belakang abu-abu sangat muda (gray-100) */
+        }
+        
+        /* Mengganti scrollbar agar lebih tipis */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; /* gray-300 */
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; /* gray-400 */
+        }
+        
+        /* Mengganti warna default outline saat fokus */
+        input:focus, select:focus, button:focus {
+            outline: 2px solid #3730a3; /* outline-indigo-700 */
+            outline-offset: 1px;
+            border-color: transparent !important; /* Sembunyikan border asli saat fokus */
+        }
+
+        /* Style untuk tombol Hapus Semua */
+        .delete-all-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem; /* p-2 */
+            color: #64748b; /* text-gray-500 */
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: all 0.2s ease-in-out;
+        }
+        .delete-all-btn:hover {
+            color: #ef4444; /* hover:text-red-500 */
+            background-color: #fef2f2; /* hover:bg-red-50 */
+        }
+
+        /* Style untuk Statistik */
+        .stat-item {
+            padding: 1rem; /* p-4 */
+            background-color: #f8fafc; /* bg-gray-50 */
+            border-radius: 0.5rem; /* rounded-lg */
+            border: 1px solid #e2e8f0; /* border-gray-200 */
+        }
+        .stat-label {
+            display: block;
+            font-size: 0.75rem; /* text-xs */
+            font-medium: 500; /* font-medium */
+            color: #64748b; /* text-gray-500 */
+            margin-bottom: 0.25rem; /* mb-1 */
+        }
+        .stat-value {
+            display: block;
+            font-size: 1rem; /* text-base */
+            font-weight: 600; /* font-semibold */
+            color: #1e293b; /* text-gray-800 */
+            line-height: 1.4;
+        }
+        .stat-subvalue {
+            display: block;
+            font-size: 0.75rem; /* text-xs */
+            color: #94a3b8; /* text-gray-400 */
+            margin-top: 0.25rem; /* mt-1 */
+        }
+        /* Pewarnaan dinamis (diterapkan via JS) */
+        .positive { color: #16a34a; /* text-green-600 */ }
+        .negative { color: #dc2626; /* text-red-600 */ }
+
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3">
+            <!-- Ikon Kalkulator -->
+            <svg class="w-7 h-7 text-indigo-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V13.5zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V18zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V13.5zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V18zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zM8.25 6h7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h1 class="text-2xl font-bold text-indigo-900">
+                Kalkulator Risiko Trading
+            </h1>
+        </div>
+    </header>
+
+    <!-- Konten Utama -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            
+            <!-- Kolom Kiri: Kalkulator -->
+            <section class="lg:col-span-3 space-y-6">
+                
+                <!-- Input Data Trade -->
+                <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200">
+                    <div class="border-b border-gray-200 pb-4 mb-6 flex items-center gap-3">
+                        <svg class="w-6 h-6 text-indigo-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                        <h2 class="text-xl font-semibold text-gray-800">Input Data Trade</h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                        
+                        <div>
+                            <label for="modal" class="block text-sm font-medium text-gray-700 mb-1">Modal ($)</label>
+                            <input type="number" id="modal" value="10000" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition" placeholder="Contoh: 10000">
+                        </div>
+
+                        <div>
+                            <label for="risk-percent" class="block text-sm font-medium text-gray-700 mb-1">Risiko per Trade (%)</label>
+                            <input type="text" id="risk-percent" value="0.6%" readonly class="w-full p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed">
+                        </div>
+
+                        <div>
+                            <label for="pair" class="block text-sm font-medium text-gray-700 mb-1">Pair</label>
+                            <select id="pair" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition bg-white appearance-none">
+                                <option value="XAUUSD">XAUUSD</option>
+                                <option value="NASDAQ">NASDAQ</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="order-type" class="block text-sm font-medium text-gray-700 mb-1">Tipe Order</label>
+                            <select id="order-type" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition bg-white appearance-none">
+                                <option value="buy">Buy</option>
+                                <option value="sell">Sell</option>
+                            </select>
+                        </div>
+
+                    <div>
+                        <label for="entry-price" class="block text-sm font-medium text-gray-700 mb-1">Entry Price</label>
+                        <input type="number" id="entry-price" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition" placeholder="Masukkan harga entry">
+                    </div>
+
+                    <div>
+                        <label for="sl-price" class="block text-sm font-medium text-gray-700 mb-1">Stop Loss (SL) Price</label>
+                        <input type="number" id="sl-price" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition" placeholder="Masukkan harga SL">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hasil Kalkulasi -->
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200">
+                <div class="border-b border-gray-200 pb-4 mb-6 flex items-center gap-3">
+                    <svg class="w-6 h-6 text-indigo-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l-3.75 3.75m3.75-3.75L0 13.5m3.75 0v-3.75A2.25 2.25 0 016 7.5h12a2.25 2.25 0 012.25 2.25v3.75m0 3.75l3.75 3.75m-3.75-3.75l3.75-3.75m-3.75 0V11.25A2.25 2.25 0 0018 9H6A2.25 2.25 0 003.75 11.25v6.75m15-3.75l-3.75 3.75m3.75-3.75l-3.75-3.75m-15 0l3.75 3.75m-3.75-3.75L0 17.25m3.75 0v-3.75" />
+                    </svg>
+                    <h3 class="text-xl font-semibold text-gray-800">Hasil Kalkulasi</h3>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-1">Potensi Rugi ($)</label>
+                        <input type="text" id="result-risk-usd" readonly class="w-full p-3 border-none rounded-lg bg-indigo-50 text-indigo-900 font-medium text-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-1">Lot Size</label>
+                        <input type="text" id="result-lot-size" readonly class="w-full p-3 border-none rounded-lg bg-indigo-50 text-indigo-900 font-medium text-lg">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-1">Jarak SL (Pips)</label>
+                        <input type="text" id="result-sl-pips" readonly class="w-full p-3 border-none rounded-lg bg-indigo-50 text-indigo-900 font-medium text-lg">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-1">Take Profit (TP) Price</label>
+                        <input type="text" id="result-tp-price" readonly class="w-full p-3 border-none rounded-lg bg-indigo-50 text-indigo-900 font-medium text-lg">
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row items-center justify-between mt-8 gap-4">
+                    <div id="calculation-status" class="text-sm text-gray-600 flex-grow text-center md:text-left">
+                        Silakan isi semua data untuk menghitung.
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button id="btn-reset" class="px-5 py-3 rounded-lg font-semibold text-gray-800 bg-gray-200 hover:bg-gray-300 transition shadow-sm">
+                            Batal
+                        </button>
+                        <button id="btn-save" class="px-5 py-3 rounded-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                            Simpan ke History
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </section> <!-- Akhir Kolom Kiri -->
+
+        <!-- Kolom Kanan: History & Analisis -->
+        <aside class="lg:col-span-1 space-y-6">
+            
+            <!-- Panel History -->
+            <section id="history-card" class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200">
+                <div class="flex items-center justify-between border-b border-gray-200 pb-3 mb-4">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-6 h-6 text-indigo-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                        <h2 class="text-xl font-semibold text-gray-800">History Trade</h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <!-- Tombol Hapus Semua -->
+                        <button id="btn-delete-all" title="Hapus Semua History" class="delete-all-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                            </svg>
+                        </button>
+                        <!-- Tombol Unduh -->
+                        <button id="btn-download-excel" title="Unduh Excel" class="p-2 text-gray-500 hover:text-indigo-600 transition rounded-lg hover:bg-indigo-50">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M.5 2.5A.5.5 0 0 1 1 2h14a.5.5 0 0 1 .5.5v2.5a.5.5 0 0 1-1 0v-2.5H1v2.5a.5.5 0 0 1-1 0v-2.5zM3.5 12a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 0-1h-3a.5.5 0 0 0-.5.5zm-1 0v-1h-1a.5.5 0 0 0 0 1h1zm1-6v-1H2a.5.5 0 0 0 0 1h1zm1-1v-1H2a.5.5 0 0 0 0 1h2zm1 1v-1H4a.5.5 0 0 0 0 1h1zm1-1v-1H4a.5.5 0 0 0 0 1h2zm1 1v-1H6a.5.5 0 0 0 0 1h1zm1-1v-1H6a.5.5 0 0 0 0 1h2zm1 1v-1H8a.5.5 0 0 0 0 1h1zm1-1v-1H8a.5.5 0 0 0 0 1h2zm1 1v-1H10a.5.5 0 0 0 0 1h1zm1-1v-1H10a.5.5 0 0 0 0 1h2zm1 1v-1H12a.5.5 0 0 0 0 1h1zm1-1v-1H12a.5.5 0 0 0 0 1h2zm1 1v-1H14a.5.5 0 0 0 0 1h1zm1-1v-1H14a.5.5 0 0 0 0 1h2zm-1 6.5a.5.5 0 0 0 .5-.5h-1a.5.5 0 0 0 .5.5z"/>
+                            </svg>
+                        </button>
+                        <button id="btn-download-pdf" title="Unduh PDF" class="p-2 text-gray-500 hover:text-indigo-600 transition rounded-lg hover:bg-indigo-50">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="history-list" class="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                    <div id="history-empty-state" class="text-center text-gray-500 py-6 text-sm">
+                        Belum ada riwayat trade.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Panel Analisis (VERSI BARU DENGAN 12+2 STATISTIK) -->
+            <section class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200">
+                <div class="flex items-center gap-3 border-b border-gray-200 pb-3 mb-6">
+                    <svg class="w-6 h-6 text-indigo-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 019.75 19.875V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                    </svg>
+                    <h2 class="text-xl font-semibold text-gray-800">Analisis Performa</h2>
+                </div>
+                
+                <!-- Grid 2-kolom untuk Statistik -->
+                <div class="grid grid-cols-2 gap-x-4 gap-y-4">
+                    
+                    <!-- Kolom 1 -->
+                    <div class="stat-item">
+                        <span class="stat-label">Total Trade Selesai</span>
+                        <span id="stat-total-trades" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Pips/Points</span>
+                        <span id="stat-total-pips" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Persentase Harian</span>
+                        <span id="stat-daily-perc" class="stat-value">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Persentase Tahunan</span>
+                        <span id="stat-yearly-perc" class="stat-value">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Saldo Akun Akhir</span>
+                        <span id="stat-final-balance" class="stat-value">$0.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Drawdown Saldo</span>
+                        <span id="stat-drawdown-usd" class="stat-value">$0.00</span>
+                        <span id="stat-drawdown-usd-period" class="stat-subvalue">Periode: 0 Jam</span>
+                    </div>
+                    
+                    <!-- Kolom 2 -->
+                    <div class="stat-item">
+                        <span class="stat-label">Probabilitas</span>
+                        <span id="stat-winrate" class="stat-value">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Rata-rata % per Trade</span>
+                        <span id="stat-avg-perc" class="stat-value">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Persentase Bulanan</span>
+                        <span id="stat-monthly-perc" class="stat-value">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Persentase Keseluruhan</span>
+                        <span id="stat-total-perc" class="stat-value">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Waktu Bergulir</span>
+                        <span id="stat-running-time" class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Maksimum Drawdown %</span>
+                        <span id="stat-drawdown-perc" class="stat-value">0%</span>
+                        <span id="stat-drawdown-perc-period" class="stat-subvalue">Periode: 0 Jam</span>
+                    </div>
+
+                    <!-- DATA BARU DITAMBAHKAN DI SINI -->
+                    <div class="stat-item">
+                        <span class="stat-label">Pips Terbesar (Profit)</span>
+                        <span id="stat-max-pips" class="stat-value">0 Pips</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Pips Terkecil (Risk)</span>
+                        <span id="stat-min-pips" class="stat-value">0 Pips</span>
+                    </div>
+
+                </div>
+
+                <!-- Grafik Perkembangan -->
+                <hr class="my-6 border-t border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Grafik Perkembangan (%)</h3>
+                <div class="relative w-full h-64">
+                    <canvas id="growthChartCanvas"></canvas>
+                </div>
+
+            </section>
+        </aside> <!-- Akhir Kolom Kanan -->
+    </div>
+</main>
+
+    <!-- Modal Pop-up Peringatan SL -->
+    <div id="sl-warning-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4 hidden">
+        <div class="bg-white w-full max-w-md p-6 rounded-xl shadow-2xl border border-gray-300">
+            <!-- Header Modal -->
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <svg class="w-6 h-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.374c-.866-1.5-3.033-1.5-3.898 0L2.697 16.126z" />
+                    </svg>
+                    <h3 class="text-lg font-semibold text-gray-900">Peringatan Stop Loss</h3>
+                </div>
+                <button id="sl-modal-close" class="p-1 rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <p id="sl-modal-message" class="text-gray-700 text-sm">
+                    Batas SL terlampaui. Batas maksimum adalah 300 pips.
+                </p>
+                <div class="p-3 bg-indigo-50 rounded-lg">
+                    <span class="block text-sm text-indigo-700">SL Price disarankan:</span>
+                    <span id="sl-modal-suggested" class="block text-xl font-bold text-indigo-900">2000.00</span>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="sl-modal-apply" class="px-4 py-2 rounded-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm">
+                    Terapkan
+                </button>
+                <button id="sl-modal-ok" class="px-4 py-2 rounded-lg font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 transition shadow-sm">
+                    Mengerti
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Pop-up Konfirmasi Hapus Semua -->
+    <div id="delete-all-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4 hidden">
+        <div class="bg-white w-full max-w-md p-6 rounded-xl shadow-2xl border border-gray-300">
+            <!-- Header Modal -->
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <svg class="w-6 h-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.374c-.866-1.5-3.033-1.5-3.898 0L2.697 16.126z" />
+                    </svg>
+                    <h3 class="text-lg font-semibold text-gray-900">Konfirmasi Hapus</h3>
+                </div>
+            </div>
+            
+            <p class="text-gray-700 text-sm">
+                Apakah Anda yakin ingin menghapus **semua** data history trade? Tindakan ini tidak dapat dibatalkan.
+            </p>
+
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="delete-all-cancel" class="px-4 py-2 rounded-lg font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 transition shadow-sm">
+                    Batal
+                </button>
+                <button id="delete-all-confirm" class="px-4 py-2 rounded-lg font-semibold text-white bg-red-600 hover:bg-red-700 transition shadow-sm">
+                    Ya, Hapus Semua
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JavaScript Utama -->
+    <script>
+        // --- KONFIGURASI ---
+        const RISK_PERCENT = 0.006; // 0.6%
+        const RR_RATIO = 2; // 1:2 Risk/Reward Ratio
+
+        // --- SELEKSI ELEMEN DOM (INPUT) ---
+        const modalInput = document.getElementById('modal');
+        const riskPercentInput = document.getElementById('risk-percent');
+        const pairInput = document.getElementById('pair');
+        const orderTypeInput = document.getElementById('order-type');
+        const entryPriceInput = document.getElementById('entry-price');
+        const slPriceInput = document.getElementById('sl-price');
+        
+        // --- SELEKSI ELEMEN DOM (OUTPUT) ---
+        const riskUsdOutput = document.getElementById('result-risk-usd');
+        const lotSizeOutput = document.getElementById('result-lot-size');
+        const slPipsOutput = document.getElementById('result-sl-pips');
+        const tpPriceOutput = document.getElementById('result-tp-price');
+        const statusElement = document.getElementById('calculation-status');
+        
+        // --- SELEKSI ELEMEN DOM (TOMBOL) ---
+        const saveBtn = document.getElementById('btn-save');
+        const resetBtn = document.getElementById('btn-reset');
+        
+        // --- SELEKSI ELEMEN DOM (HISTORY) ---
+        const historyList = document.getElementById('history-list');
+        const historyEmptyState = document.getElementById('history-empty-state');
+        const downloadExcelBtn = document.getElementById('btn-download-excel');
+        const downloadPdfBtn = document.getElementById('btn-download-pdf');
+        
+        // --- SELEKSI ELEMEN DOM (MODAL SL) ---
+        const slWarningModal = document.getElementById('sl-warning-modal');
+        const slModalMessage = document.getElementById('sl-modal-message');
+        const slModalSuggested = document.getElementById('sl-modal-suggested');
+        const slModalCloseBtn = document.getElementById('sl-modal-close');
+        const slModalOkBtn = document.getElementById('sl-modal-ok');
+        const slModalApplyBtn = document.getElementById('sl-modal-apply');
+        
+        // --- SELEKSI ELEMEN DOM (MODAL HAPUS) ---
+        const deleteAllBtn = document.getElementById('btn-delete-all');
+        const deleteAllModal = document.getElementById('delete-all-modal');
+        const deleteAllConfirmBtn = document.getElementById('delete-all-confirm');
+        const deleteAllCancelBtn = document.getElementById('delete-all-cancel');
+        
+        // --- SELEKSI ELEMEN DOM (ANALISIS) ---
+        const statTotalTrades = document.getElementById('stat-total-trades');
+        const statWinrate = document.getElementById('stat-winrate');
+        const statTotalPerc = document.getElementById('stat-total-perc');
+        const statAvgPerc = document.getElementById('stat-avg-perc');
+        const statTotalPips = document.getElementById('stat-total-pips');
+        const statRunningTime = document.getElementById('stat-running-time');
+        const statFinalBalance = document.getElementById('stat-final-balance');
+        const statDailyPerc = document.getElementById('stat-daily-perc');
+        const statMonthlyPerc = document.getElementById('stat-monthly-perc');
+        const statYearlyPerc = document.getElementById('stat-yearly-perc');
+        const statDrawdownUsd = document.getElementById('stat-drawdown-usd');
+        const statDrawdownUsdPeriod = document.getElementById('stat-drawdown-usd-period');
+        const statDrawdownPerc = document.getElementById('stat-drawdown-perc');
+        const statDrawdownPercPeriod = document.getElementById('stat-drawdown-perc-period');
+        const statMaxPips = document.getElementById('stat-max-pips');
+        const statMinPips = document.getElementById('stat-min-pips');
+
+        // --- VARIABEL GLOBAL ---
+        let tradeHistory = [];
+        let currentCalcData = {};
+        let currentAnalyticsData = {};
+        let growthChartInstance = null;
+        
+        // --- FUNGSI HELPER BARU ---
+        
+        /**
+         * Membersihkan dan mem-parsing string menjadi float.
+         * Menghapus simbol '$', ',', dan spasi.
+         * Mengembalikan 0 jika input tidak valid.
+         */
+        function parseSafeFloat(input) {
+            if (typeof input === 'number') return input;
+            if (typeof input !== 'string') return 0;
+            
+            const cleanedInput = input
+                .replace(/\$/g, '')  // Hapus simbol $
+                .replace(/,/g, '')   // Hapus koma
+                .trim();             // Hapus spasi
+                
+            const value = parseFloat(cleanedInput);
+            return isNaN(value) ? 0 : value;
+        }
+
+        /**
+         * Mendapatkan nilai dari baris Excel dengan nama kolom yang fleksibel.
+         */
+        function getValue(row, keys) {
+            for (const key of keys) {
+                if (row[key] !== undefined) {
+                    return row[key];
+                }
+            }
+            return undefined;
+        }
+
+        // --- FUNGSI UTAMA ---
+
+        /**
+         * Fungsi inti untuk menghitung semua data risiko.
+         */
+        function calculateRiskData() {
+            // Gunakan parseSafeFloat untuk input modal agar lebih aman
+            const modal = parseSafeFloat(modalInput.value);
+            const pair = pairInput.value;
+            const orderType = orderTypeInput.value;
+            const entryPrice = parseSafeFloat(entryPriceInput.value);
+            const slPrice = parseSafeFloat(slPriceInput.value);
+
+            // Validasi input dasar
+            if (!modal || !entryPrice || !slPrice || modal <= 0 || entryPrice <= 0 || slPrice <= 0) {
+                return { status: "error", message: "Harap isi Modal, Entry, dan SL Price." };
+            }
+
+            // Tentukan parameter berdasarkan pair
+            let pipsMultiplier, decimals, maxSlPips, pipValuePerLot;
+            if (pair === 'XAUUSD') {
+                pipsMultiplier = 10; // 1900.5 ke 1901.5 = 10 pips
+                decimals = 2;
+                maxSlPips = 300;
+                pipValuePerLot = 10; // $10 per pip per 1 lot
+            } else { // NASDAQ
+                pipsMultiplier = 1; // 18000 ke 18001 = 1 point
+                decimals = 0;
+                maxSlPips = 3000;
+                pipValuePerLot = 1; // $1 per point per 1 lot
+            }
+
+            // Validasi tipe order
+            if ((orderType === 'buy' && entryPrice < slPrice) || (orderType === 'sell' && entryPrice > slPrice)) {
+                return { status: "error", message: "Harga SL tidak valid untuk tipe order ini." };
+            }
+
+            // Kalkulasi inti
+            const riskUsd = modal * RISK_PERCENT;
+            const slPips = Math.abs(entryPrice - slPrice) * pipsMultiplier;
+            const lotSize = riskUsd / (slPips * pipValuePerLot);
+            
+            // Hitung TP
+            const pipsToTp = slPips * RR_RATIO;
+            let tpPrice;
+            if (orderType === 'buy') {
+                tpPrice = entryPrice + (pipsToTp / pipsMultiplier);
+            } else {
+                tpPrice = entryPrice - (pipsToTp / pipsMultiplier);
+            }
+
+            // Cek batas SL
+            const limitExceeded = slPips > maxSlPips;
+            let suggestedSl = null;
+            if (limitExceeded) {
+                if (orderType === 'buy') {
+                    suggestedSl = entryPrice - (maxSlPips / pipsMultiplier);
+                } else {
+                    suggestedSl = entryPrice + (maxSlPips / pipsMultiplier);
+                }
+            }
+            
+            // Kembalikan data yang dihitung
+            return {
+                status: "success",
+                modal: modal,
+                pair: pair,
+                type: orderType,
+                entry: entryPrice,
+                sl: slPrice,
+                tpPrice: tpPrice,
+                riskUsd: riskUsd,
+                lotSize: lotSize,
+                slPips: slPips,
+                tpPips: pipsToTp, // Pips untuk TP (Profit)
+                potentialProfit: riskUsd * RR_RATIO,
+                decimals: decimals,
+                maxSlPips: maxSlPips,
+                limitExceeded: limitExceeded,
+                suggestedSl: suggestedSl
+            };
+        }
+
+        /**
+         * Menangani update UI saat kalkulasi berhasil atau gagal.
+         */
+        function handleCalculation() {
+            const data = calculateRiskData();
+            currentCalcData = data; // Simpan data kalkulasi terakhir secara global
+
+            if (data.status === "success") {
+                riskUsdOutput.value = `$${data.riskUsd.toFixed(2)}`;
+                lotSizeOutput.value = data.lotSize.toFixed(2);
+                slPipsOutput.value = data.slPips;
+                tpPriceOutput.value = data.tpPrice.toFixed(data.decimals);
+                
+                statusElement.textContent = `RR 1:${RR_RATIO}. Potensi Profit: $${data.potentialProfit.toFixed(2)}`;
+                statusElement.className = "text-sm text-green-700 font-medium flex-grow text-center md:text-left";
+                
+                if (data.limitExceeded) {
+                    saveBtn.disabled = true;
+                    statusElement.textContent = `Peringatan: Jarak SL (${data.slPips} pips) melebihi batas maks (${data.maxSlPips} pips).`;
+                    statusElement.className = "text-sm text-yellow-700 font-medium flex-grow text-center md:text-left";
+                } else {
+                    saveBtn.disabled = false;
+                }
+
+            } else {
+                riskUsdOutput.value = "N/A";
+                lotSizeOutput.value = "N/A";
+                slPipsOutput.value = "N/A";
+                tpPriceOutput.value = "N/A";
+                statusElement.textContent = data.message;
+                statusElement.className = "text-sm text-red-600 font-medium flex-grow text-center md:text-left";
+                saveBtn.disabled = true;
+            }
+            saveFormInputs();
+        }
+
+        /**
+         * Menangani reset form.
+         */
+        function handleReset() {
+            // Reset hanya input, bukan modal
+            pairInput.value = "XAUUSD";
+            orderTypeInput.value = "buy";
+            entryPriceInput.value = "";
+            slPriceInput.value = "";
+            
+            // Panggil kalkulasi untuk me-reset output
+            handleCalculation();
+            statusElement.textContent = "Silakan isi semua data untuk menghitung.";
+            statusElement.className = "text-sm text-gray-600 flex-grow text-center md:text-left";
+        }
+
+        /**
+         * Menangani penyimpanan trade ke history.
+         */
+        function handleSaveTrade() {
+            if (currentCalcData.status !== "success" || currentCalcData.limitExceeded) {
+                alert("Data kalkulasi tidak valid atau melebihi batas SL.");
+                return;
+            }
+            
+            const newTrade = {
+                id: crypto.randomUUID(),
+                timestamp: new Date().toISOString(), // Penting untuk pengurutan
+                pair: currentCalcData.pair,
+                type: currentCalcData.type,
+                entry: currentCalcData.entry.toFixed(currentCalcData.decimals),
+                sl: currentCalcData.sl.toFixed(currentCalcData.decimals),
+                tp: currentCalcData.tpPrice.toFixed(currentCalcData.decimals),
+                lotSize: currentCalcData.lotSize.toFixed(2),
+                riskUsd: currentCalcData.riskUsd,
+                potentialProfit: currentCalcData.potentialProfit,
+                slPips: currentCalcData.slPips,
+                tpPips: currentCalcData.tpPips, // Simpan pips TP
+                status: 'pending' // 'pending', 'win', 'loss'
+            };
+
+            tradeHistory.push(newTrade);
+            saveTradeHistory();
+            renderHistory();
+            handleReset(); // Reset form setelah menyimpan
+        }
+        
+        /**
+         * Merender ulang seluruh daftar history.
+         */
+        function renderHistory() {
+            historyList.innerHTML = ''; // Kosongkan list
+            
+            if (tradeHistory.length === 0) {
+                historyEmptyState.style.display = 'block';
+                return;
+            }
+
+            historyEmptyState.style.display = 'none';
+
+            // Urutkan history (terbaru ke terlama)
+            const sortedHistory = [...tradeHistory].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            sortedHistory.forEach(trade => {
+                renderTradeItem(trade);
+            });
+            
+            updateAnalytics();
+        }
+        
+        /**
+         * Merender satu item trade di history.
+         */
+        function renderTradeItem(trade) {
+            const item = document.createElement('div');
+            item.className = 'p-4 border border-gray-200 rounded-lg bg-gray-50';
+            
+            const potentialProfit = trade.potentialProfit.toFixed(2);
+            const riskUsd = trade.riskUsd.toFixed(2);
+            
+            let statusHtml = '';
+            
+            if (trade.status === 'pending') {
+                statusHtml = `
+                    <div class="grid grid-cols-3 gap-2">
+                        <button class="history-status-btn px-3 py-2 text-xs font-semibold rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition" data-id="${trade.id}" data-status="pending">Pending</button>
+                        <button class="history-status-btn px-3 py-2 text-xs font-semibold rounded-md bg-green-200 text-green-800 hover:bg-green-300 transition" data-id="${trade.id}" data-status="win">Win</button>
+                        <button class="history-status-btn px-3 py-2 text-xs font-semibold rounded-md bg-red-200 text-red-800 hover:bg-red-300 transition" data-id="${trade.id}" data-status="loss">Loss</button>
+                    </div>
+                `;
+            } else {
+                const labelClass = trade.status === 'win' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800';
+                statusHtml = `
+                    <div class="p-2 text-center rounded-md ${labelClass} text-sm font-semibold">
+                        STATUS: ${trade.status.toUpperCase()}
+                    </div>
+                `;
+            }
+
+            item.innerHTML = `
+                <div class="flex justify-between items-center mb-3">
+                    <span class="font-bold text-lg text-gray-800">${trade.pair}</span>
+                    <span class="px-3 py-1 rounded-full text-xs font-medium ${trade.type === 'buy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                        ${trade.type.toUpperCase()}
+                    </span>
+                </div>
+                <div class="text-sm text-gray-600 space-y-1 mb-4">
+                    <p>Entry: <span class="font-medium text-gray-900">${trade.entry}</span></p>
+                    <p>SL: <span class="font-medium text-gray-900">${trade.sl}</span> | TP: <span class="font-medium text-gray-900">${trade.tp}</span></p>
+                    <p>Lot: <span class="font-medium text-gray-900">${trade.lotSize}</span></p>
+                    <p>Rugi: <span class="font-medium text-red-600">-$${riskUsd}</span> | Profit: <span class="font-medium text-green-600">+$${potentialProfit}</span></p>
+                </div>
+                ${statusHtml}
+            `;
+            
+            // Gunakan .append() agar urutan sesuai (terbaru di atas)
+            historyList.append(item);
+        }
+
+        /**
+         * Menangani klik pada tombol status di history.
+         */
+        function handleStatusClick(e) {
+            const target = e.target.closest('.history-status-btn');
+            if (!target) return;
+
+            const tradeId = target.dataset.id;
+            const newStatus = target.dataset.status;
+
+            const trade = tradeHistory.find(t => t.id === tradeId);
+            if (trade) {
+                trade.status = newStatus;
+                saveTradeHistory();
+                renderHistory(); // Render ulang semua untuk mengganti tombol dengan label
+            }
+        }
+        
+        /**
+         * Menghitung dan memperbarui panel Analisis Performa.
+         */
+        function updateAnalytics() {
+            const completedTrades = tradeHistory.filter(t => t.status === 'win' || t.status === 'loss');
+            const initialModal = parseSafeFloat(localStorage.getItem('tradeCal_modal')) || parseSafeFloat(modalInput.value) || 10000;
+            
+            // 1. Total Trade Selesai
+            const totalTrades = completedTrades.length;
+            statTotalTrades.textContent = totalTrades;
+            
+            // 2. Probabilitas (Win Rate)
+            const wins = completedTrades.filter(t => t.status === 'win').length;
+            const losses = totalTrades - wins;
+            const winrate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
+            statWinrate.textContent = `${winrate.toFixed(2)}%`;
+            statWinrate.className = `stat-value ${winrate >= 50 ? 'positive' : (totalTrades > 0 ? 'negative' : '')}`;
+            
+            // 3. Saldo Akun Akhir & 4. Persentase Keseluruhan (Berdasarkan $ P/L)
+            let totalProfitUsd = 0;
+            let totalLossUsd = 0;
+            let runningBalance = initialModal;
+            let peakBalance = initialModal;
+            let maxDrawdownUsd = 0;
+            let maxDrawdownPerc = 0;
+
+            // Urutkan berdasarkan timestamp (TERLAMA ke TERBARU) untuk kalkulasi drawdown
+            const sortedTrades = [...completedTrades].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            sortedTrades.forEach(trade => {
+                if (trade.status === 'win') {
+                    const profit = parseSafeFloat(trade.potentialProfit);
+                    totalProfitUsd += profit;
+                    runningBalance += profit;
+                } else {
+                    const loss = parseSafeFloat(trade.riskUsd);
+                    totalLossUsd += loss;
+                    runningBalance -= loss;
+                }
+                
+                // Kalkulasi Drawdown
+                if (runningBalance > peakBalance) {
+                    peakBalance = runningBalance;
+                }
+                
+                const drawdownUsd = peakBalance - runningBalance;
+                if (drawdownUsd > maxDrawdownUsd) {
+                    maxDrawdownUsd = drawdownUsd;
+                }
+                
+                const drawdownPerc = peakBalance > 0 ? (drawdownUsd / peakBalance) * 100 : 0;
+                if (drawdownPerc > maxDrawdownPerc) {
+                    maxDrawdownPerc = drawdownPerc;
+                }
+            });
+
+            const finalBalance = runningBalance;
+            statFinalBalance.textContent = `$${finalBalance.toFixed(2)}`;
+            statFinalBalance.className = `stat-value ${finalBalance >= initialModal ? 'positive' : (totalTrades > 0 ? 'negative' : '')}`;
+
+            const totalNetProfitUsd = totalProfitUsd - totalLossUsd;
+            const totalPercent = initialModal > 0 ? (totalNetProfitUsd / initialModal) * 100 : 0;
+            
+            // Fungsi helper untuk format
+            function formatStatValue(value, unit = '', decimals = 2) {
+                const num = parseFloat(value);
+                const fixedValue = num.toFixed(decimals);
+                const text = `${fixedValue}${unit}`;
+                let className = 'stat-value';
+                if (num > 0) className += ' positive';
+                if (num < 0) className += ' negative';
+                return { text, className };
+            }
+
+            const percFormatted = formatStatValue(totalPercent, '%', 2);
+            statTotalPerc.textContent = percFormatted.text;
+            statTotalPerc.className = percFormatted.className;
+
+            // 6. Rata-rata % per Trade
+            // (Dihitung berdasarkan $ P/L, bukan % tetap)
+            const avgNetUsd = totalTrades > 0 ? totalNetProfitUsd / totalTrades : 0;
+            const avgPercent = initialModal > 0 ? (avgNetUsd / initialModal) * 100 : 0;
+            
+            const avgPercFormatted = formatStatValue(avgPercent, '%', 2);
+            statAvgPerc.textContent = avgPercFormatted.text;
+            statAvgPerc.className = avgPercFormatted.className;
+
+            // 7. Total Pips/Points (Berdasarkan Pips mentah)
+            const totalPips = sortedTrades.reduce((acc, trade) => {
+                const pips = trade.status === 'win' ? parseSafeFloat(trade.tpPips) : -parseSafeFloat(trade.slPips);
+                return acc + pips;
+            }, 0);
+            const pipsFormatted = formatStatValue(totalPips, '', 1);
+            statTotalPips.textContent = pipsFormatted.text;
+            statTotalPips.className = pipsFormatted.className;
+
+
+            // 8. Waktu Bergulir (Asumsi dari trade pertama)
+            if (sortedTrades.length > 0) {
+                const firstTradeDate = new Date(sortedTrades[0].timestamp);
+                statRunningTime.textContent = firstTradeDate.toLocaleDateString('id-ID');
+            } else {
+                statRunningTime.textContent = '-';
+            }
+
+            // 10. Drawdown Saldo
+            statDrawdownUsd.textContent = `$${maxDrawdownUsd.toFixed(2)}`;
+            statDrawdownUsd.className = 'stat-value negative';
+            statDrawdownUsdPeriod.textContent = "Periode: N/A"; // (Logika periode jam terlalu kompleks untuk JS sederhana)
+            
+            // 11. Maksimum Drawdown %
+            statDrawdownPerc.textContent = `${maxDrawdownPerc.toFixed(2)}%`;
+            statDrawdownPerc.className = 'stat-value negative';
+            statDrawdownPercPeriod.textContent = "Periode: N/A";
+
+            // 12. Persentase Harian, Bulanan, Tahunan (Dummy, karena data tidak cukup)
+            statDailyPerc.textContent = "N/A";
+            statMonthlyPerc.textContent = "N/A";
+            statYearlyPerc.textContent = "N/A";
+            
+            // 13. Pips Terbesar (Profit) - PERUBAHAN LOGIKA
+            let maxProfitPips = 0;
+            if (tradeHistory.length > 0) {
+                // Gunakan tpPips (profit) dari SEMUA trade di history
+                const allProfitPips = tradeHistory.map(t => t.tpPips);
+                maxProfitPips = Math.max(...allProfitPips);
+            }
+            statMaxPips.textContent = `${maxProfitPips.toFixed(1)} Pips`;
+
+            // 14. Pips Terkecil (Risk)
+            let minRiskPips = 0;
+            if (tradeHistory.length > 0) {
+                // Gunakan slPips (risk) dari SEMUA trade di history
+                const allRiskPips = tradeHistory.map(t => t.slPips);
+                minRiskPips = Math.min(...allRiskPips);
+            }
+            statMinPips.textContent = `${minRiskPips.toFixed(1)} Pips`;
+
+
+            // Simpan data analitik ke variabel global untuk diunduh
+            currentAnalyticsData = {
+                totalTrades: totalTrades,
+                winrate: `${winrate.toFixed(2)}%`,
+                totalPips: totalPips.toFixed(1),
+                avgPercent: `${avgPercent.toFixed(2)}%`,
+                totalPercent: `${totalPercent.toFixed(2)}%`,
+                finalBalance: `$${finalBalance.toFixed(2)}`,
+                maxDrawdownUsd: `$${maxDrawdownUsd.toFixed(2)}`,
+                maxDrawdownPerc: `${maxDrawdownPerc.toFixed(2)}%`,
+                wins: wins,
+                losses: losses,
+                maxPips: `${maxProfitPips.toFixed(1)} Pips`,
+                minPips: `${minRiskPips.toFixed(1)} Pips`
+            };
+
+            renderGrowthChart(sortedTrades, initialModal);
+        }
+        
+        /**
+         * Merender grafik perkembangan.
+         */
+        function renderGrowthChart(completedTrades, initialModal) {
+            const ctx = document.getElementById('growthChartCanvas').getContext('2d');
+            
+            let cumulativePercent = 0;
+            const labels = ['Start'];
+            const dataPoints = [0];
+            
+            completedTrades.forEach((trade, index) => {
+                let percentChange = 0;
+                if (trade.status === 'win') {
+                    // Gunakan P/L $ aktual untuk menghitung %
+                    percentChange = (parseSafeFloat(trade.potentialProfit) / initialModal) * 100;
+                } else {
+                    percentChange = -(parseSafeFloat(trade.riskUsd) / initialModal) * 100;
+                }
+                cumulativePercent += percentChange;
+                
+                labels.push(`Trade ${index + 1}`);
+                dataPoints.push(cumulativePercent);
+            });
+
+            if (growthChartInstance) {
+                growthChartInstance.destroy();
+            }
+            
+            growthChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Perkembangan Modal (%)',
+                        data: dataPoints,
+                        borderColor: '#4338ca', // indigo-700
+                        backgroundColor: 'rgba(67, 56, 202, 0.1)',
+                        fill: true,
+                        tension: 0, // Mengubah kurva menjadi garis lurus (tajam)
+                        pointBackgroundColor: '#4338ca',
+                        pointRadius: dataPoints.length > 50 ? 0 : 3,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1) + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                display: dataPoints.length > 20 ? false : true // Sembunyikan label X jika terlalu banyak data
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Perkembangan: ${context.raw.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- FUNGSI MODAL ---
+
+        /**
+         * Menampilkan modal peringatan SL.
+         */
+        function showSlWarningModal(message, suggestedSl) {
+            slModalMessage.textContent = message;
+            slModalSuggested.textContent = suggestedSl.toFixed(currentCalcData.decimals);
+            slWarningModal.classList.remove('hidden');
+        }
+
+        /**
+         * Menyembunyikan modal peringatan SL.
+         */
+        function hideSlWarningModal() {
+            slWarningModal.classList.add('hidden');
+        }
+
+        /**
+         * Menangani penerapan SL yang disarankan.
+         */
+        function handleApplySuggestedSl() {
+            if (currentCalcData && currentCalcData.suggestedSl) {
+                slPriceInput.value = currentCalcData.suggestedSl.toFixed(currentCalcData.decimals);
+                hideSlWarningModal();
+                handleCalculation(); // Panggil ulang kalkulasi dengan nilai baru
+            }
+        }
+        
+        /**
+         * Menangani pop-up konfirmasi hapus semua.
+         */
+        function showDeleteAllModal() {
+            deleteAllModal.classList.remove('hidden');
+        }
+        function hideDeleteAllModal() {
+            deleteAllModal.classList.add('hidden');
+        }
+        function handleDeleteAllConfirm() {
+            tradeHistory = [];
+            saveTradeHistory();
+            renderHistory();
+            hideDeleteAllModal();
+        }
+
+        // --- FUNGSI UNDUH ---
+
+        /**
+         * Menangani unduh data sebagai Excel.
+         */
+        function handleDownloadExcel() {
+            if (tradeHistory.length === 0) {
+                alert("Tidak ada data history untuk diunduh.");
+                return;
+            }
+
+            // Data untuk Sheet 1: Analisis Performa
+            const analysisData = [
+                ["Statistik", "Nilai"],
+                ["Total Trade Selesai", currentAnalyticsData.totalTrades],
+                ["Probabilitas", currentAnalyticsData.winrate],
+                ["Total Pips/Points", currentAnalyticsData.totalPips],
+                ["Rata-rata % per Trade", currentAnalyticsData.avgPercent],
+                ["Persentase Keseluruhan", currentAnalyticsData.totalPercent],
+                ["Saldo Akun Akhir", currentAnalyticsData.finalBalance],
+                ["Drawdown Saldo", currentAnalyticsData.maxDrawdownUsd],
+                ["Maksimum Drawdown %", currentAnalyticsData.maxDrawdownPerc],
+                ["Pips Terbesar (Profit)", currentAnalyticsData.maxPips],
+                ["Pips Terkecil (Risk)", currentAnalyticsData.minPips],
+            ];
+            const wsAnalysis = XLSX.utils.aoa_to_sheet(analysisData);
+
+            // Data untuk Sheet 2: History Trade
+            const exportHistory = [...tradeHistory].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            const historyJson = exportHistory.map(t => ({
+                "Timestamp": t.timestamp,
+                "Pair": t.pair,
+                "Tipe": t.type,
+                "Status": t.status,
+                "Entry": parseSafeFloat(t.entry),
+                "SL": parseSafeFloat(t.sl),
+                "TP": parseSafeFloat(t.tp),
+                "Lot": parseSafeFloat(t.lotSize),
+                "Potensi Rugi ($)": parseSafeFloat(t.riskUsd),
+                "Potensi Profit ($)": parseSafeFloat(t.potentialProfit),
+                "SL Pips": parseSafeFloat(t.slPips),
+                "TP Pips": parseSafeFloat(t.tpPips)
+            }));
+            const wsHistory = XLSX.utils.json_to_sheet(historyJson);
+            
+            // Buat Workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, wsAnalysis, "Analisis Performa");
+            XLSX.utils.book_append_sheet(wb, wsHistory, "History Trade");
+            XLSX.writeFile(wb, "Laporan_Trading_Analisis.xlsx");
+        }
+        
+        /**
+         * Menangani unduh data sebagai PDF.
+         */
+        function handleDownloadPdf() {
+            if (tradeHistory.length === 0) {
+                alert("Tidak ada data history untuk diunduh.");
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(18);
+            doc.text("Laporan Analisis Trading", 14, 22);
+            doc.setFontSize(11);
+            doc.text(`Dibuat pada: ${new Date().toLocaleString('id-ID')}`, 14, 28);
+
+            // Tabel 1: Analisis Performa
+            doc.setFontSize(14);
+            doc.text("Ringkasan Analisis Performa", 14, 40);
+            
+            const analysisData = [
+                ["Total Trade Selesai", currentAnalyticsData.totalTrades],
+                ["Probabilitas", currentAnalyticsData.winrate],
+                ["Total Pips/Points", currentAnalyticsData.totalPips],
+                ["Rata-rata % per Trade", currentAnalyticsData.avgPercent],
+                ["Persentase Keseluruhan", currentAnalyticsData.totalPercent],
+                ["Saldo Akun Akhir", currentAnalyticsData.finalBalance],
+                ["Drawdown Saldo", currentAnalyticsData.maxDrawdownUsd],
+                ["Maksimum Drawdown %", currentAnalyticsData.maxDrawdownPerc],
+                ["Pips Terbesar (Profit)", currentAnalyticsData.maxPips],
+                ["Pips Terkecil (Risk)", currentAnalyticsData.minPips],
+            ];
+            
+            doc.autoTable({
+                startY: 45,
+                head: [["Statistik", "Nilai"]],
+                body: analysisData,
+                theme: 'striped',
+                headStyles: { fillColor: [67, 56, 202] } // Warna Indigo
+            });
+
+            // --- TAMBAHKAN CHART KE PDF ---
+            const chartCanvas = document.getElementById('growthChartCanvas');
+            const analysisTableEndY = (doc.lastAutoTable.finalY || 40) + 10; // Posisi Y setelah tabel analisis
+            
+            if (growthChartInstance && chartCanvas) {
+                const chartImgData = chartCanvas.toDataURL('image/png');
+                
+                doc.setFontSize(14);
+                doc.text("Grafik Perkembangan", 14, analysisTableEndY);
+                
+                // Tambahkan gambar chart (lebar 180mm, tinggi 80mm)
+                doc.addImage(chartImgData, 'PNG', 14, analysisTableEndY + 5, 180, 80);
+            }
+            // --- AKHIR TAMBAHAN CHART ---
+
+            // Tentukan posisi awal tabel history setelah tabel analisis (DAN CHART)
+            // (Posisi Y setelah tabel + tinggi chart + margin)
+            const chartEndY = analysisTableEndY + 80 + 15; 
+            const historyStartY = chartEndY;
+
+            doc.setFontSize(14);
+            doc.text("Detail History Trade", 14, historyStartY - 5);
+            
+            // Ambil history yang sudah diurutkan (terbaru ke terlama) untuk ekspor
+            const exportHistory = [...tradeHistory].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            const historyHeader = ["Pair", "Tipe", "Status", "Entry", "SL", "TP", "Lot", "Rugi ($)", "Profit ($)"];
+            const historyBody = exportHistory.map(t => [
+                t.pair,
+                t.type,
+                t.status,
+                t.entry,
+                t.sl,
+                t.tp,
+                t.lotSize,
+                `-$${t.riskUsd.toFixed(2)}`,
+                `+$${t.potentialProfit.toFixed(2)}`
+            ]);
+
+            doc.autoTable({
+                startY: historyStartY, // Gunakan Y-posisi yang baru
+                head: [historyHeader],
+                body: historyBody,
+                theme: 'grid',
+                headStyles: { fillColor: [67, 56, 202] } // Warna Indigo
+            });
+
+            doc.save("Laporan_Trading_Analisis.pdf");
+        }
+
+
+        // --- FUNGSI PENYIMPANAN (LOCALSTORAGE) ---
+
+        /**
+         * Menyimpan history trade ke localStorage.
+         */
+        function saveTradeHistory() {
+            localStorage.setItem('tradeCal_history', JSON.stringify(tradeHistory));
+        }
+
+        /**
+         * Memuat history trade dari localStorage.
+         */
+        function loadTradeHistory() {
+            const savedHistory = localStorage.getItem('tradeCal_history');
+            if (savedHistory) {
+                tradeHistory = JSON.parse(savedHistory);
+                
+                // MIGRASI DATA LAMA (jika ada data sebelum update timestamp/pips)
+                tradeHistory.forEach(trade => {
+                    if (!trade.timestamp) {
+                        trade.timestamp = new Date().toISOString();
+                    }
+                    if (!trade.tpPips) {
+                        // Hitung pips TP jika tidak ada (untuk data lama)
+                        const pipsMultiplier = trade.pair === 'XAUUSD' ? 10 : 1;
+                        trade.tpPips = (trade.slPips * RR_RATIO) || (Math.abs(parseSafeFloat(trade.entry) - parseSafeFloat(trade.tp)) * pipsMultiplier);
+                    }
+                });
+                
+                renderHistory();
+            }
+        }
+        
+        /**
+         * Menyimpan input form terakhir ke localStorage.
+         */
+        function saveFormInputs() {
+            const formData = {
+                modal: modalInput.value,
+                pair: pairInput.value,
+                orderType: orderTypeInput.value,
+                entryPrice: entryPriceInput.value,
+                slPrice: slPriceInput.value
+            };
+            localStorage.setItem('tradeCal_form', JSON.stringify(formData));
+        }
+
+        /**
+         * Memuat input form terakhir dari localStorage.
+         */
+        function loadFormInputs() {
+            const savedForm = localStorage.getItem('tradeCal_form');
+            if (savedForm) {
+                const formData = JSON.parse(savedForm);
+                modalInput.value = formData.modal || "10000";
+                pairInput.value = formData.pair || "XAUUSD";
+                orderTypeInput.value = formData.orderType || "buy";
+                entryPriceInput.value = formData.entryPrice || "";
+                slPriceInput.value = formData.slPrice || "";
+            }
+        }
+
+        // --- INISIALISASI & EVENT LISTENERS ---
+
+        /**
+         * Menjalankan semua event listener saat DOM siap.
+         */
+        function initializeApp() {
+            // Muat data dari localStorage
+            loadFormInputs();
+            loadTradeHistory();
+            
+            // Lakukan kalkulasi awal berdasarkan data yang dimuat
+            handleCalculation();
+            
+            // Listener untuk input kalkulator
+            [modalInput, pairInput, orderTypeInput, entryPriceInput, slPriceInput].forEach(input => {
+                input.addEventListener('input', handleCalculation);
+            });
+            
+            // Listener khusus untuk pop-up SL (hanya aktif setelah selesai input)
+            slPriceInput.addEventListener('change', () => {
+                if (currentCalcData.limitExceeded) {
+                    showSlWarningModal(
+                        `Batas SL terlampaui. Batas maksimum untuk ${currentCalcData.pair} adalah ${currentCalcData.maxSlPips} pips.`,
+                        currentCalcData.suggestedSl
+                    );
+                }
+            });
+
+            // Listener untuk tombol
+            resetBtn.addEventListener('click', handleReset);
+            saveBtn.addEventListener('click', handleSaveTrade);
+            downloadExcelBtn.addEventListener('click', handleDownloadExcel);
+            downloadPdfBtn.addEventListener('click', handleDownloadPdf);
+            
+            // Listener untuk history
+            historyList.addEventListener('click', handleStatusClick);
+
+            // Listener untuk modal SL
+            slModalCloseBtn.addEventListener('click', hideSlWarningModal);
+            slModalOkBtn.addEventListener('click', hideSlWarningModal);
+            slModalApplyBtn.addEventListener('click', handleApplySuggestedSl);
+            
+            // Listener untuk modal Hapus Semua
+            deleteAllBtn.addEventListener('click', showDeleteAllModal);
+            deleteAllCancelBtn.addEventListener('click', hideDeleteAllModal);
+            deleteAllConfirmBtn.addEventListener('click', handleDeleteAllConfirm);
+        }
+
+        // Jalankan aplikasi saat halaman selesai dimuat
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+    </script>
+</body>
+</html>
